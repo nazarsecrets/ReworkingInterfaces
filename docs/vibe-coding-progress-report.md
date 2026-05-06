@@ -101,7 +101,21 @@ Tested viewport examples:
 - iPhone 16 wireframe: `393x852`
 - iPad: `834x1194`
 
-## 8. Same-Time Deadline Grouping
+## 8. Single Topbar with View Switcher
+
+The Dashboard / Iteration 3 / Iteration 4 segmented switcher previously sat in its own row beneath the topbar, producing two stacked bars at the top of the screen.
+
+Major upgrade:
+- The switcher now lives inside the topbar itself, anchored to the right just before the user account block.
+- The bell notification icon was removed; its role is already covered by the icon-first tray in Iteration 3 and the tabbed Announcements / Feedback panel in Iteration 4.
+- The result is a single, taller-feeling topbar that consolidates search, view switching, and identity in one strip.
+
+Design rationale:
+- Reduces vertical chrome on every page so the calendar gets more room.
+- Aligns with the `Topbar` component's role as the global navigation surface — switching iterations is now treated as a navigation act, not a content-area control.
+- Removing the bell avoids competing notification entry points; updates surface only inside their dedicated panels.
+
+## 9. Same-Time Deadline Grouping
 
 When two or more deadlines fall in the same time window on the same day, the previous version stacked the cards with a small horizontal offset, which produced a visually noisy overlap (for example, `Reading Response 7` and `Problem Set 5` both due at 11:59 PM).
 
@@ -110,13 +124,15 @@ Major upgrade:
 - The block has one shared `Due 11:59 PM` header plus an `N items` count.
 - Each assignment sits as its own row inside, separated by hairline dividers and prefixed with its course-color stripe.
 - Days with only one item at that time keep the original single-card styling unchanged.
+- The grouped block is smart-anchored to its due time so it never visually clips: late-evening deadlines (6 PM and later) extend upward from the time line, early-morning deadlines (9 AM and earlier) extend downward, and mid-day deadlines stay centered.
+- The block carries an elevated z-index so any residual overflow renders above neighbouring day cells instead of getting masked.
 
 Design rationale:
 - The grouped block makes the shared deadline window unambiguous instead of implying two separate slots.
 - It preserves course color identification per item.
 - It avoids cascading overlap that previously truncated titles and obscured the second item.
 
-## 9. Microinteractions Added
+## 10. Microinteractions Added
 
 Subtle motion was added to improve perceived quality without making the interface feel decorative.
 
@@ -134,7 +150,7 @@ Design rationale:
 - It makes the prototype feel more like a usable app.
 - It avoids heavy animation that would distract from academic task management.
 
-## 10. Navigation Depth: Beyond One Step
+## 11. Navigation Depth: Beyond One Step
 
 The user may want to move more than one week or month, such as jumping ahead three weeks.
 
@@ -159,7 +175,7 @@ Why this is effective:
 - It keeps the primary movement simple.
 - It gives power users a deeper navigation path without needing repeated clicks.
 
-## 11. Current State
+## 12. Current State
 
 The prototype now has two clearly differentiated calendar concepts:
 
@@ -177,7 +193,7 @@ Iteration 4:
 - Tabbed announcements and feedback
 - Best for schedule-level planning
 
-## 12. Summary of Vibe-Coding Progress
+## 13. Summary of Vibe-Coding Progress
 
 The work moved from broad concept sketches into a functional, testable React prototype. The key shift was using Codex not only to implement visual ideas, but to pressure-test interaction logic, responsive behavior, overflow, calendar semantics, and microinteractions.
 

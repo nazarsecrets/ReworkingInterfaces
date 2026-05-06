@@ -261,6 +261,17 @@ const dueTimeTop = (due: string) => {
   return `${Math.min(92, calendarTimePercent(hour24, minute))}%`;
 };
 
+const dueAnchor = (due: string): "above" | "below" | "center" => {
+  const match = due.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
+  if (!match) return "center";
+  const hour = Number(match[1]);
+  const period = match[3].toUpperCase();
+  const hour24 = (hour % 12) + (period === "PM" ? 12 : 0);
+  if (hour24 >= 18) return "above";
+  if (hour24 <= 9) return "below";
+  return "center";
+};
+
 const formatCurrentTime = (date: Date) =>
   date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -528,7 +539,7 @@ const CalendarWorkspace = ({
                         <button
                           key={item.id}
                           type="button"
-                          className="motion-soft motion-press absolute flex w-full -translate-y-1/2 flex-col rounded-md border border-rule bg-paper px-3 py-3 text-left shadow-sm"
+                          className="absolute flex w-full -translate-y-1/2 flex-col rounded-md border border-rule bg-paper px-3 py-3 text-left shadow-sm"
                           style={{ top: dueTimeTop(item.due) }}
                         >
                           <span className="text-[11px] font-semibold leading-[14px]" style={{ color: colors[item.accent] }}>
@@ -542,10 +553,19 @@ const CalendarWorkspace = ({
                       );
                     })()
                   ) : (
+                    (() => {
+                      const anchor = dueAnchor(group.due);
+                      const transform =
+                        anchor === "above"
+                          ? "translateY(-100%)"
+                          : anchor === "below"
+                            ? "translateY(0)"
+                            : "translateY(-50%)";
+                      return (
                     <div
                       key={group.due}
-                      className="absolute flex w-full -translate-y-1/2 flex-col overflow-hidden rounded-md border border-rule bg-paper shadow-sm"
-                      style={{ top: dueTimeTop(group.due) }}
+                      className="absolute z-30 flex w-full flex-col overflow-hidden rounded-md border border-rule bg-paper shadow-md"
+                      style={{ top: dueTimeTop(group.due), transform }}
                     >
                       <div className="flex items-center justify-between border-b border-rule/70 bg-bone/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate">
                         <span>Due {group.due}</span>
@@ -558,7 +578,7 @@ const CalendarWorkspace = ({
                           <button
                             key={item.id}
                             type="button"
-                            className="motion-soft motion-press flex w-full items-stretch gap-2 px-3 py-2 text-left"
+                            className="flex w-full items-stretch gap-2 px-3 py-2 text-left"
                           >
                             <span
                               className="w-[3px] flex-shrink-0 rounded-sm"
@@ -574,6 +594,8 @@ const CalendarWorkspace = ({
                         ))}
                       </div>
                     </div>
+                      );
+                    })()
                   )
                 )}
               </div>
@@ -875,10 +897,8 @@ export const Dashboard = () => {
         userName="Shreeya Rokade"
         userInitials="SR"
         context="Spring 2026 · IU Bloomington"
+        trailing={<ViewSwitcher active={view} onChange={setView} />}
       />
-      <div className="overflow-x-auto border-b border-rule px-4 py-3 md:px-12">
-        <ViewSwitcher active={view} onChange={setView} />
-      </div>
       <div className="min-h-0 flex-1 overflow-auto">
         {view === "dashboard" && <DashboardView />}
         {view === "iteration3" && <Iteration3View />}
