@@ -192,6 +192,44 @@ const dueItems = [
   },
 ];
 
+const monthDays = [
+  { date: "29", label: "Sun", muted: true },
+  { date: "30", label: "Mon" },
+  { date: "31", label: "Tue" },
+  { date: "01", label: "Wed", active: true },
+  { date: "02", label: "Thu" },
+  { date: "03", label: "Fri" },
+  { date: "04", label: "Sat" },
+  { date: "05", label: "Sun" },
+  { date: "06", label: "Mon" },
+  { date: "07", label: "Tue" },
+  { date: "08", label: "Wed" },
+  { date: "09", label: "Thu" },
+  { date: "10", label: "Fri" },
+  { date: "11", label: "Sat" },
+  { date: "12", label: "Sun" },
+  { date: "13", label: "Mon" },
+  { date: "14", label: "Tue" },
+  { date: "15", label: "Wed" },
+  { date: "16", label: "Thu" },
+  { date: "17", label: "Fri" },
+  { date: "18", label: "Sat" },
+  { date: "19", label: "Sun" },
+  { date: "20", label: "Mon" },
+  { date: "21", label: "Tue" },
+  { date: "22", label: "Wed" },
+  { date: "23", label: "Thu" },
+  { date: "24", label: "Fri" },
+  { date: "25", label: "Sat" },
+  { date: "26", label: "Sun" },
+  { date: "27", label: "Mon" },
+  { date: "28", label: "Tue" },
+  { date: "29", label: "Wed" },
+  { date: "30", label: "Thu" },
+  { date: "01", label: "Fri", muted: true },
+  { date: "02", label: "Sat", muted: true },
+];
+
 const courseInitial = (course: string) => course.charAt(0);
 
 const timelineHours = [9, 12, 15, 18, 21];
@@ -349,9 +387,10 @@ const CalendarWorkspace = ({
   showCourseCalendarAction?: boolean;
 }) => {
   const currentTime = useCurrentTimeMarker();
-  const sectionHeight = mode === "blobs" ? 560 : 720;
-  const gridHeight = mode === "blobs" ? 360 : 520;
-  const gridMinWidth = mode === "blobs" ? 760 : 980;
+  const isMonthly = mode === "blobs";
+  const sectionHeight = isMonthly ? 660 : 720;
+  const gridHeight = isMonthly ? 450 : 520;
+  const gridMinWidth = isMonthly ? 700 : 980;
 
   return (
     <section className="relative overflow-hidden rounded-md border border-rule bg-paper p-4 md:p-8" style={{ height: sectionHeight }}>
@@ -360,78 +399,91 @@ const CalendarWorkspace = ({
           <h2 className="text-[28px] font-bold leading-9 tracking-[-0.015em] text-ink md:text-[32px] md:leading-10">
             To Do
           </h2>
-          <p className="text-small text-slate">Deadlines placed directly into the week view</p>
+          <p className="text-small text-slate">
+            {isMonthly ? "Deadlines placed directly into the month view" : "Deadlines placed directly into the week view"}
+          </p>
         </div>
-        <div className="flex w-full overflow-x-auto rounded-md border border-rule bg-page p-1 lg:w-auto">
-          {calendarDays.map((day) => (
-            <div
-              key={day.date}
-              className={`flex h-14 min-w-14 flex-col items-center justify-center rounded text-[12px] font-semibold md:min-w-16 ${
-                day.active ? "bg-crimson text-white" : "text-slate"
-              }`}
-            >
-              <span>{day.date}</span>
-              <span>{day.label.split(" ")[0]}</span>
-            </div>
-          ))}
+        <div className="flex w-fit rounded-md border border-rule bg-page p-1">
+          <button type="button" className="rounded px-4 py-3 text-[13px] font-semibold text-slate hover:bg-paper">
+            {isMonthly ? "Previous month" : "Previous week"}
+          </button>
+          <button type="button" className="rounded bg-ink px-4 py-3 text-[13px] font-semibold text-white">
+            {isMonthly ? "Next month" : "Next week"}
+          </button>
         </div>
       </div>
 
       <div className="mt-6 overflow-x-auto pb-2 md:mt-8">
-      <div className="relative grid gap-px overflow-hidden rounded-md border border-rule bg-rule xl:min-w-0" style={{ height: gridHeight, minWidth: gridMinWidth, gridTemplateColumns: `56px repeat(${calendarDays.length}, minmax(0, 1fr))` }}>
-        {timelineHours.map((hour) => (
+      {isMonthly ? (
+        <div className="grid gap-px overflow-visible rounded-md border border-rule bg-rule" style={{ height: gridHeight, minWidth: gridMinWidth, gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
+          {monthDays.map((day, index) => {
+            const items = day.muted ? [] : dueItems.filter((item) => item.date === day.date);
+            const column = index % 7;
+            const row = Math.floor(index / 7);
+            const placement = row >= 3 ? "top" : column >= 5 ? "left" : column <= 1 ? "right" : "bottom";
+
+            return (
+              <div key={`${day.label}-${day.date}-${index}`} className="relative flex flex-col gap-3 bg-page p-3">
+                <div className={day.active ? "text-crimson" : day.muted ? "text-[#9A9A9A]" : "text-slate"}>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.08em]">{day.label}</div>
+                  <div className="text-[18px] font-semibold">{day.date}</div>
+                </div>
+                <div className="mt-auto flex flex-wrap gap-2">
+                  {items.slice(0, 3).map((item) => (
+                    <TooltipHint
+                      key={item.id}
+                      label={`${item.course}: ${item.title} due ${item.due}`}
+                      placement={placement}
+                    >
+                      <button
+                        type="button"
+                        aria-label={`${item.title} due ${item.due}`}
+                        className="flex h-10 w-10 items-center justify-center rounded-sm border border-black/10 text-[13px] font-bold text-white shadow-sm"
+                        style={{ backgroundColor: colors[item.accent] }}
+                      >
+                        {courseInitial(item.course)}
+                      </button>
+                    </TooltipHint>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="relative grid gap-px overflow-hidden rounded-md border border-rule bg-rule xl:min-w-0" style={{ height: gridHeight, minWidth: gridMinWidth, gridTemplateColumns: `56px repeat(${calendarDays.length}, minmax(0, 1fr))` }}>
+          {timelineHours.map((hour) => (
+            <div
+              key={hour}
+              className="pointer-events-none absolute left-0 right-0 z-10 flex items-center"
+              style={{ top: timelineGridTop(calendarTimePercent(hour, 0)) }}
+              aria-hidden="true"
+            >
+              <span className="w-14 bg-page px-2 text-[10px] font-medium leading-3 text-slate">
+                {hour > 12 ? hour - 12 : hour}:00
+              </span>
+              <span className="h-px flex-1 bg-rule" />
+            </div>
+          ))}
           <div
-            key={hour}
-            className="pointer-events-none absolute left-0 right-0 z-10 flex items-center"
-            style={{ top: timelineGridTop(calendarTimePercent(hour, 0)) }}
+            className="pointer-events-none absolute left-0 right-0 z-20 flex items-center"
+            style={{ top: currentTime.top }}
             aria-hidden="true"
           >
-            <span className="w-14 bg-page px-2 text-[10px] font-medium leading-3 text-slate">
-              {hour > 12 ? hour - 12 : hour}:00
+            <span className="ml-2 rounded-sm bg-crimson px-1.5 py-0.5 text-[10px] font-semibold leading-3 text-white">
+              {currentTime.label}
             </span>
-            <span className="h-px flex-1 bg-rule" />
+            <span className="h-px flex-1 bg-crimson" />
           </div>
-        ))}
-        <div
-          className="pointer-events-none absolute left-0 right-0 z-20 flex items-center"
-          style={{ top: currentTime.top }}
-          aria-hidden="true"
-        >
-          <span className="ml-2 rounded-sm bg-crimson px-1.5 py-0.5 text-[10px] font-semibold leading-3 text-white">
-            {currentTime.label}
-          </span>
-          <span className="h-px flex-1 bg-crimson" />
-        </div>
-        <div className="bg-page" aria-hidden="true" />
-        {calendarDays.map((day) => (
-          <div key={day.date} className="relative flex flex-col gap-3 bg-page p-4">
-            <div className={day.active ? "text-crimson" : "text-slate"}>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.08em]">
-                {day.label}
+          <div className="bg-page" aria-hidden="true" />
+          {calendarDays.map((day) => (
+            <div key={day.date} className="relative flex flex-col gap-3 bg-page p-4">
+              <div className={day.active ? "text-crimson" : "text-slate"}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.08em]">
+                  {day.label}
+                </div>
+                <div className="text-[18px] font-semibold">{day.date}</div>
               </div>
-              <div className="text-[18px] font-semibold">{day.date}</div>
-            </div>
-            {mode === "blobs" ? (
-              <div className="absolute inset-x-4 bottom-4 top-24">
-                {dueItems.filter((item) => item.date === day.date).map((item, index) => (
-                  <TooltipHint
-                    key={item.id}
-                    label={`${item.course}: ${item.title} due ${item.due}`}
-                    className="absolute -translate-y-1/2"
-                    style={{ top: dueTimeTop(item.due), left: `${index * 42}px` }}
-                  >
-                  <button
-                    type="button"
-                    aria-label={`${item.title} due ${item.due}`}
-                    className="flex h-10 w-10 items-center justify-center rounded-sm border border-black/10 text-[13px] font-bold text-white shadow-sm"
-                    style={{ backgroundColor: colors[item.accent] }}
-                  >
-                      {courseInitial(item.course)}
-                    </button>
-                  </TooltipHint>
-                ))}
-              </div>
-            ) : (
               <div className="absolute inset-x-4 bottom-4 top-24">
                 {dueItems.filter((item) => item.date === day.date).map((item, index) => (
                   <button
@@ -450,10 +502,10 @@ const CalendarWorkspace = ({
                   </button>
                 ))}
               </div>
-            )}
-          </div>
-        ))}
-      </div>
+            </div>
+          ))}
+        </div>
+      )}
       </div>
 
       {showCourseCalendarAction && (
@@ -470,15 +522,27 @@ const TooltipHint = ({
   children,
   className = "",
   style,
+  placement = "bottom",
 }: {
   label: string;
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
+  placement?: "top" | "right" | "bottom" | "left";
 }) => (
   <span className={`group relative inline-flex ${className}`} style={style}>
     {children}
-    <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-56 -translate-x-1/2 rounded-md bg-ink px-3 py-2 text-[12px] font-medium leading-4 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+    <span
+      className={`pointer-events-none absolute z-20 w-56 rounded-md bg-ink px-3 py-2 text-[12px] font-medium leading-4 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ${
+        placement === "top"
+          ? "bottom-full left-1/2 mb-2 -translate-x-1/2"
+          : placement === "right"
+            ? "left-full top-1/2 ml-2 -translate-y-1/2"
+            : placement === "left"
+              ? "right-full top-1/2 mr-2 -translate-y-1/2"
+              : "left-1/2 top-full mt-2 -translate-x-1/2"
+      }`}
+    >
       {label}
     </span>
   </span>
