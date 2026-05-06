@@ -121,6 +121,16 @@ const calendarDays = [
       },
     ],
   },
+  {
+    label: "SAT",
+    date: "04",
+    events: [],
+  },
+  {
+    label: "SUN",
+    date: "05",
+    events: [],
+  },
 ];
 
 const dueItems = [
@@ -154,6 +164,22 @@ const dueItems = [
     title: "HCI Field Study Draft",
     course: "INFO-I 300",
     due: "5:00 PM",
+    accent: "success" as ColorToken,
+  },
+  {
+    id: "discussion-reply",
+    date: "04",
+    title: "Discussion Reply",
+    course: "COGS-Q 240",
+    due: "11:00 AM",
+    accent: "crimson" as ColorToken,
+  },
+  {
+    id: "weekly-check",
+    date: "05",
+    title: "Weekly Check-in",
+    course: "INFO-I 300",
+    due: "7:30 PM",
     accent: "success" as ColorToken,
   },
   {
@@ -325,7 +351,7 @@ const CalendarWorkspace = ({
   const currentTime = useCurrentTimeMarker();
 
   return (
-    <section className="relative overflow-hidden rounded-md border border-rule bg-paper p-4 md:p-8">
+    <section className="relative overflow-hidden rounded-md border border-rule bg-paper p-4 md:p-8" style={{ height: 720 }}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-[28px] font-bold leading-9 tracking-[-0.015em] text-ink md:text-[32px] md:leading-10">
@@ -349,7 +375,7 @@ const CalendarWorkspace = ({
       </div>
 
       <div className="mt-6 overflow-x-auto pb-2 md:mt-8">
-      <div className="relative grid min-h-[500px] min-w-[760px] grid-cols-[56px_repeat(5,minmax(0,1fr))] gap-px overflow-hidden rounded-md border border-rule bg-rule md:min-h-[520px] xl:min-w-0">
+      <div className="relative grid min-w-[760px] grid-cols-[56px_repeat(5,minmax(0,1fr))] gap-px overflow-hidden rounded-md border border-rule bg-rule xl:min-w-0" style={{ height: 520 }}>
         {timelineHours.map((hour) => (
           <div
             key={hour}
@@ -655,13 +681,13 @@ const CourseStreamTabs = () => (
 );
 
 const DashboardView = () => (
-  <div className="flex flex-1 flex-col overflow-auto xl:flex-row">
-    <main className="flex min-w-0 flex-1 flex-col gap-10 p-4 md:p-8 xl:p-12">
+  <div className="flex flex-1 flex-col overflow-visible xl:flex-row xl:overflow-auto">
+    <main className="flex min-w-0 flex-1 flex-col gap-10 p-4 md:p-8 xl:overflow-auto xl:p-12">
       <PageIntro />
       <CoursesSection />
     </main>
 
-    <aside className="flex w-full flex-shrink-0 flex-col gap-8 border-t border-rule bg-paper p-4 md:p-8 xl:w-rail xl:border-l xl:border-t-0 xl:py-12 xl:pl-8 xl:pr-12">
+    <aside className="flex w-full flex-shrink-0 flex-col gap-8 border-t border-rule bg-paper p-4 md:p-8 xl:w-rail xl:overflow-auto xl:border-l xl:border-t-0 xl:py-12 xl:pl-8 xl:pr-12">
       <TodoList items={todos} />
       <section className="flex flex-col gap-4">
         <h2 className="text-caption font-semibold uppercase tracking-[0.12em] text-slate">
@@ -686,13 +712,13 @@ const DashboardView = () => (
 );
 
 const Iteration3View = () => (
-  <div className="flex flex-1 flex-col overflow-auto xl:flex-row">
-    <main className="flex min-w-0 flex-1 flex-col gap-9 overflow-auto p-4 md:p-8 xl:p-12">
+  <div className="flex flex-1 flex-col overflow-visible xl:flex-row xl:overflow-auto">
+    <main className="flex min-w-0 flex-1 flex-col gap-9 p-4 md:p-8 xl:overflow-auto xl:p-12">
       <PageIntro />
       <CalendarWorkspace mode="blobs" />
       <CourseSummaryRows />
     </main>
-    <aside className="flex w-full flex-shrink-0 flex-col gap-8 overflow-auto border-t border-rule bg-paper p-4 md:p-8 xl:w-[420px] xl:border-l xl:border-t-0">
+    <aside className="flex w-full flex-shrink-0 flex-col gap-8 border-t border-rule bg-paper p-4 md:p-8 xl:w-[420px] xl:overflow-auto xl:border-l xl:border-t-0">
       <UpdateIconDock />
       <SideList title="Feedback" />
     </aside>
@@ -700,13 +726,13 @@ const Iteration3View = () => (
 );
 
 const Iteration4View = () => (
-  <div className="flex flex-1 flex-col overflow-auto xl:flex-row">
-    <main className="flex min-w-0 flex-1 flex-col gap-9 overflow-auto p-4 md:p-8 xl:p-12">
+  <div className="flex flex-1 flex-col overflow-visible xl:flex-row xl:overflow-auto">
+    <main className="flex min-w-0 flex-1 flex-col gap-9 p-4 md:p-8 xl:overflow-auto xl:p-12">
       <PageIntro />
       <CalendarWorkspace mode="blocks" showCourseCalendarAction />
       <CourseSummaryRows />
     </main>
-    <aside className="flex w-full flex-shrink-0 flex-col gap-8 overflow-auto border-t border-rule bg-paper p-4 md:p-8 xl:w-[470px] xl:border-l xl:border-t-0">
+    <aside className="flex w-full flex-shrink-0 flex-col gap-8 border-t border-rule bg-paper p-4 md:p-8 xl:w-[470px] xl:overflow-auto xl:border-l xl:border-t-0">
       <TabbedUpdates />
       <CourseStreamTabs />
     </aside>
@@ -728,9 +754,11 @@ export const Dashboard = () => {
       <div className="overflow-x-auto border-b border-rule px-4 py-3 md:px-12">
         <ViewSwitcher active={view} onChange={setView} />
       </div>
-      {view === "dashboard" && <DashboardView />}
-      {view === "iteration3" && <Iteration3View />}
-      {view === "iteration4" && <Iteration4View />}
+      <div className="min-h-0 flex-1 overflow-auto">
+        {view === "dashboard" && <DashboardView />}
+        {view === "iteration3" && <Iteration3View />}
+        {view === "iteration4" && <Iteration4View />}
+      </div>
     </div>
   </div>
   );
