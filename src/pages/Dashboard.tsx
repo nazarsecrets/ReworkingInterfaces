@@ -349,9 +349,12 @@ const CalendarWorkspace = ({
   showCourseCalendarAction?: boolean;
 }) => {
   const currentTime = useCurrentTimeMarker();
+  const sectionHeight = mode === "blobs" ? 560 : 720;
+  const gridHeight = mode === "blobs" ? 360 : 520;
+  const gridMinWidth = mode === "blobs" ? 760 : 980;
 
   return (
-    <section className="relative overflow-hidden rounded-md border border-rule bg-paper p-4 md:p-8" style={{ height: 720 }}>
+    <section className="relative overflow-hidden rounded-md border border-rule bg-paper p-4 md:p-8" style={{ height: sectionHeight }}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-[28px] font-bold leading-9 tracking-[-0.015em] text-ink md:text-[32px] md:leading-10">
@@ -363,7 +366,7 @@ const CalendarWorkspace = ({
           {calendarDays.map((day) => (
             <div
               key={day.date}
-              className={`flex h-14 min-w-16 flex-col items-center justify-center rounded text-[12px] font-semibold ${
+              className={`flex h-14 min-w-14 flex-col items-center justify-center rounded text-[12px] font-semibold md:min-w-16 ${
                 day.active ? "bg-crimson text-white" : "text-slate"
               }`}
             >
@@ -375,7 +378,7 @@ const CalendarWorkspace = ({
       </div>
 
       <div className="mt-6 overflow-x-auto pb-2 md:mt-8">
-      <div className="relative grid min-w-[760px] grid-cols-[56px_repeat(5,minmax(0,1fr))] gap-px overflow-hidden rounded-md border border-rule bg-rule xl:min-w-0" style={{ height: 520 }}>
+      <div className="relative grid gap-px overflow-hidden rounded-md border border-rule bg-rule xl:min-w-0" style={{ height: gridHeight, minWidth: gridMinWidth, gridTemplateColumns: `56px repeat(${calendarDays.length}, minmax(0, 1fr))` }}>
         {timelineHours.map((hour) => (
           <div
             key={hour}
@@ -417,12 +420,12 @@ const CalendarWorkspace = ({
                     className="absolute -translate-y-1/2"
                     style={{ top: dueTimeTop(item.due), left: `${index * 42}px` }}
                   >
-                    <button
-                      type="button"
-                      aria-label={`${item.title} due ${item.due}`}
-                      className="flex h-9 w-9 items-center justify-center rounded-sm border border-black/10 text-[13px] font-bold text-white shadow-sm"
-                      style={{ backgroundColor: colors[item.accent] }}
-                    >
+                  <button
+                    type="button"
+                    aria-label={`${item.title} due ${item.due}`}
+                    className="flex h-10 w-10 items-center justify-center rounded-sm border border-black/10 text-[13px] font-bold text-white shadow-sm"
+                    style={{ backgroundColor: colors[item.accent] }}
+                  >
                       {courseInitial(item.course)}
                     </button>
                   </TooltipHint>
@@ -481,31 +484,6 @@ const TooltipHint = ({
   </span>
 );
 
-const CourseSummaryRows = () => (
-  <section className="flex flex-col gap-4">
-    <div>
-      <h2 className="text-h3 font-semibold text-ink">Course Summary</h2>
-      <p className="text-small text-slate">Upcoming work grouped by course, date, details, and due status.</p>
-    </div>
-    <div className="overflow-hidden rounded-md border border-rule">
-      {courses.map((course) => (
-        <div key={course.code} className="grid grid-cols-1 gap-3 border-b border-rule bg-paper p-4 last:border-b-0 sm:grid-cols-[130px_1fr_100px] sm:items-center md:grid-cols-[160px_1fr_130px] md:gap-6 md:p-5">
-          <div className="rounded-md bg-page p-3 text-small font-semibold text-ink md:p-4">
-            {course.schedule}
-          </div>
-          <div>
-            <div className="text-small font-semibold text-ink">{course.title}</div>
-            <div className="text-[12px] leading-4 text-slate">{course.instructor}</div>
-          </div>
-          <div className="rounded-md bg-page p-3 text-left text-[12px] font-semibold text-slate sm:text-center md:p-4">
-            {course.dueCount} due
-          </div>
-        </div>
-      ))}
-    </div>
-  </section>
-);
-
 const UpdateIconDock = () => {
   const [activeKind, setActiveKind] = useState<UpdateKind | null>(null);
   const activeItems = activeKind ? updateContent[activeKind] : [];
@@ -516,7 +494,15 @@ const UpdateIconDock = () => {
   ];
 
   return (
-    <section className="relative flex flex-col gap-4">
+    <section
+      className="relative flex flex-col gap-4"
+      onMouseLeave={() => setActiveKind(null)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setActiveKind(null);
+        }
+      }}
+    >
       <div className="flex items-center gap-3">
         {iconButtons.map((item) => (
           <TooltipHint key={item.id} label={`${updateContent[item.id].length} pending ${item.label.toLowerCase()}`}>
@@ -716,7 +702,7 @@ const Iteration3View = () => (
     <main className="flex min-w-0 flex-1 flex-col gap-9 p-4 md:p-8 xl:overflow-auto xl:p-12">
       <PageIntro />
       <CalendarWorkspace mode="blobs" />
-      <CourseSummaryRows />
+      <CoursesSection />
     </main>
     <aside className="flex w-full flex-shrink-0 flex-col gap-8 border-t border-rule bg-paper p-4 md:p-8 xl:w-[420px] xl:overflow-auto xl:border-l xl:border-t-0">
       <UpdateIconDock />
@@ -730,7 +716,7 @@ const Iteration4View = () => (
     <main className="flex min-w-0 flex-1 flex-col gap-9 p-4 md:p-8 xl:overflow-auto xl:p-12">
       <PageIntro />
       <CalendarWorkspace mode="blocks" showCourseCalendarAction />
-      <CourseSummaryRows />
+      <CoursesSection />
     </main>
     <aside className="flex w-full flex-shrink-0 flex-col gap-8 border-t border-rule bg-paper p-4 md:p-8 xl:w-[470px] xl:overflow-auto xl:border-l xl:border-t-0">
       <TabbedUpdates />
