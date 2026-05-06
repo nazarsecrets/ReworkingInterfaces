@@ -513,22 +513,69 @@ const CalendarWorkspace = ({
                 <div className="text-[18px] font-semibold">{day.date}</div>
               </div>
               <div className="absolute inset-x-4 bottom-4 top-24">
-                {dueItems.filter((item) => item.date === day.date).map((item, index) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="motion-soft motion-press absolute flex w-full -translate-y-1/2 flex-col rounded-md border border-rule bg-paper px-3 py-3 text-left shadow-sm"
-                    style={{ top: dueTimeTop(item.due), left: `${index * 12}px`, width: `calc(100% - ${index * 12}px)` }}
-                  >
-                    <span className="text-[11px] font-semibold leading-[14px]" style={{ color: colors[item.accent] }}>
-                      Due {item.due}
-                    </span>
-                    <span className="truncate text-[12px] font-semibold leading-4 text-ink">
-                      {item.title}
-                    </span>
-                    <span className="truncate text-[11px] leading-[14px] text-slate">{item.course}</span>
-                  </button>
-                ))}
+                {Object.values(
+                  dueItems
+                    .filter((item) => item.date === day.date)
+                    .reduce<Record<string, { due: string; items: typeof dueItems }>>((acc, item) => {
+                      (acc[item.due] ??= { due: item.due, items: [] }).items.push(item);
+                      return acc;
+                    }, {})
+                ).map((group) =>
+                  group.items.length === 1 ? (
+                    (() => {
+                      const item = group.items[0];
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className="motion-soft motion-press absolute flex w-full -translate-y-1/2 flex-col rounded-md border border-rule bg-paper px-3 py-3 text-left shadow-sm"
+                          style={{ top: dueTimeTop(item.due) }}
+                        >
+                          <span className="text-[11px] font-semibold leading-[14px]" style={{ color: colors[item.accent] }}>
+                            Due {item.due}
+                          </span>
+                          <span className="truncate text-[12px] font-semibold leading-4 text-ink">
+                            {item.title}
+                          </span>
+                          <span className="truncate text-[11px] leading-[14px] text-slate">{item.course}</span>
+                        </button>
+                      );
+                    })()
+                  ) : (
+                    <div
+                      key={group.due}
+                      className="absolute flex w-full -translate-y-1/2 flex-col overflow-hidden rounded-md border border-rule bg-paper shadow-sm"
+                      style={{ top: dueTimeTop(group.due) }}
+                    >
+                      <div className="flex items-center justify-between border-b border-rule/70 bg-bone/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate">
+                        <span>Due {group.due}</span>
+                        <span className="text-[10px] font-medium normal-case tracking-normal text-slate">
+                          {group.items.length} items
+                        </span>
+                      </div>
+                      <div className="flex flex-col divide-y divide-rule/60">
+                        {group.items.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className="motion-soft motion-press flex w-full items-stretch gap-2 px-3 py-2 text-left"
+                          >
+                            <span
+                              className="w-[3px] flex-shrink-0 rounded-sm"
+                              style={{ background: colors[item.accent] }}
+                            />
+                            <span className="flex min-w-0 flex-col">
+                              <span className="truncate text-[12px] font-semibold leading-4 text-ink">
+                                {item.title}
+                              </span>
+                              <span className="truncate text-[11px] leading-[14px] text-slate">{item.course}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           ))}

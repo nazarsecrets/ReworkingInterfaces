@@ -101,7 +101,22 @@ Tested viewport examples:
 - iPhone 16 wireframe: `393x852`
 - iPad: `834x1194`
 
-## 8. Microinteractions Added
+## 8. Same-Time Deadline Grouping
+
+When two or more deadlines fall in the same time window on the same day, the previous version stacked the cards with a small horizontal offset, which produced a visually noisy overlap (for example, `Reading Response 7` and `Problem Set 5` both due at 11:59 PM).
+
+Major upgrade:
+- Items sharing a due time on the same day now collapse into a single grouped block.
+- The block has one shared `Due 11:59 PM` header plus an `N items` count.
+- Each assignment sits as its own row inside, separated by hairline dividers and prefixed with its course-color stripe.
+- Days with only one item at that time keep the original single-card styling unchanged.
+
+Design rationale:
+- The grouped block makes the shared deadline window unambiguous instead of implying two separate slots.
+- It preserves course color identification per item.
+- It avoids cascading overlap that previously truncated titles and obscured the second item.
+
+## 9. Microinteractions Added
 
 Subtle motion was added to improve perceived quality without making the interface feel decorative.
 
@@ -119,7 +134,7 @@ Design rationale:
 - It makes the prototype feel more like a usable app.
 - It avoids heavy animation that would distract from academic task management.
 
-## 9. Navigation Depth: Beyond One Step
+## 10. Navigation Depth: Beyond One Step
 
 The user may want to move more than one week or month, such as jumping ahead three weeks.
 
@@ -144,7 +159,7 @@ Why this is effective:
 - It keeps the primary movement simple.
 - It gives power users a deeper navigation path without needing repeated clicks.
 
-## 10. Current State
+## 11. Current State
 
 The prototype now has two clearly differentiated calendar concepts:
 
@@ -162,7 +177,7 @@ Iteration 4:
 - Tabbed announcements and feedback
 - Best for schedule-level planning
 
-## 11. Summary of Vibe-Coding Progress
+## 12. Summary of Vibe-Coding Progress
 
 The work moved from broad concept sketches into a functional, testable React prototype. The key shift was using Codex not only to implement visual ideas, but to pressure-test interaction logic, responsive behavior, overflow, calendar semantics, and microinteractions.
 
