@@ -21,7 +21,7 @@ export const CourseCard = ({
   postCount,
   accent = "crimson",
 }: CourseCardProps) => (
-  <article className="flex w-[268px] flex-col overflow-hidden rounded-md border border-rule bg-page">
+  <article className="motion-soft flex w-[268px] flex-col overflow-hidden rounded-md border border-rule bg-page hover:shadow-sm">
     <div
       className="h-2 flex-shrink-0"
       style={{ backgroundColor: colors[accent] }}

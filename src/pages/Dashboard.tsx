@@ -332,7 +332,7 @@ const ViewSwitcher = ({
         key={tab.id}
         type="button"
         onClick={() => onChange(tab.id)}
-        className={`rounded px-4 py-2 text-[13px] font-semibold leading-[18px] ${
+        className={`motion-soft motion-press rounded px-4 py-2 text-[13px] font-semibold leading-[18px] ${
           active === tab.id ? "bg-page text-ink shadow-sm" : "text-slate"
         }`}
       >
@@ -365,7 +365,7 @@ const CompactCourseCard = ({
   postCount,
   accent = "crimson",
 }: (typeof courses)[number]) => (
-  <article className="flex min-w-[240px] flex-1 flex-col overflow-hidden rounded-md border border-rule bg-page">
+  <article className="motion-soft flex min-w-[240px] flex-1 flex-col overflow-hidden rounded-md border border-rule bg-page hover:shadow-sm">
     <div className="h-1.5" style={{ backgroundColor: colors[accent] }} />
     <div className="flex flex-col gap-1.5 p-4">
       <div className="text-[11px] font-medium uppercase leading-[14px] tracking-[0.08em] text-slate">
@@ -388,9 +388,23 @@ const CalendarWorkspace = ({
 }) => {
   const currentTime = useCurrentTimeMarker();
   const isMonthly = mode === "blobs";
+  const [range, setRange] = useState(isMonthly ? "this-month" : "this-week");
   const sectionHeight = isMonthly ? 660 : 720;
   const gridHeight = isMonthly ? 450 : 520;
   const gridMinWidth = isMonthly ? 700 : 980;
+  const jumpOptions = isMonthly
+    ? [
+        { value: "this-month", label: "This month" },
+        { value: "previous-3-months", label: "Previous 3 months" },
+        { value: "next-3-months", label: "Next 3 months" },
+        { value: "semester", label: "Semester" },
+      ]
+    : [
+        { value: "this-week", label: "This week" },
+        { value: "past-3-weeks", label: "Past 3 weeks" },
+        { value: "next-3-weeks", label: "Next 3 weeks" },
+        { value: "month", label: "Month" },
+      ];
 
   return (
     <section className="relative overflow-hidden rounded-md border border-rule bg-paper p-4 md:p-8" style={{ height: sectionHeight }}>
@@ -403,13 +417,27 @@ const CalendarWorkspace = ({
             {isMonthly ? "Deadlines placed directly into the month view" : "Deadlines placed directly into the week view"}
           </p>
         </div>
-        <div className="flex w-fit rounded-md border border-rule bg-page p-1">
-          <button type="button" className="rounded px-4 py-3 text-[13px] font-semibold text-slate hover:bg-paper">
+        <div className="flex w-fit flex-wrap gap-1 rounded-md border border-rule bg-page p-1">
+          <button type="button" className="motion-soft motion-press rounded px-4 py-3 text-[13px] font-semibold text-slate hover:bg-paper">
             {isMonthly ? "Previous month" : "Previous week"}
           </button>
-          <button type="button" className="rounded bg-ink px-4 py-3 text-[13px] font-semibold text-white">
+          <button type="button" className="motion-soft motion-press rounded bg-ink px-4 py-3 text-[13px] font-semibold text-white">
             {isMonthly ? "Next month" : "Next week"}
           </button>
+          <label className="flex items-center gap-2 rounded border-l border-rule px-3 py-2 text-[13px] font-semibold text-slate">
+            Jump
+            <select
+              value={range}
+              onChange={(event) => setRange(event.target.value)}
+              className="bg-transparent text-[13px] font-semibold text-ink outline-none"
+            >
+              {jumpOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 
@@ -438,7 +466,7 @@ const CalendarWorkspace = ({
                       <button
                         type="button"
                         aria-label={`${item.title} due ${item.due}`}
-                        className="flex h-10 w-10 items-center justify-center rounded-sm border border-black/10 text-[13px] font-bold text-white shadow-sm"
+                        className="motion-soft motion-press flex h-10 w-10 items-center justify-center rounded-sm border border-black/10 text-[13px] font-bold text-white shadow-sm"
                         style={{ backgroundColor: colors[item.accent] }}
                       >
                         {courseInitial(item.course)}
@@ -470,7 +498,7 @@ const CalendarWorkspace = ({
             style={{ top: currentTime.top }}
             aria-hidden="true"
           >
-            <span className="ml-2 rounded-sm bg-crimson px-1.5 py-0.5 text-[10px] font-semibold leading-3 text-white">
+            <span className="now-pulse ml-2 rounded-sm bg-crimson px-1.5 py-0.5 text-[10px] font-semibold leading-3 text-white">
               {currentTime.label}
             </span>
             <span className="h-px flex-1 bg-crimson" />
@@ -489,7 +517,7 @@ const CalendarWorkspace = ({
                   <button
                     key={item.id}
                     type="button"
-                    className="absolute flex w-full -translate-y-1/2 flex-col rounded-md border border-rule bg-paper px-3 py-3 text-left shadow-sm"
+                    className="motion-soft motion-press absolute flex w-full -translate-y-1/2 flex-col rounded-md border border-rule bg-paper px-3 py-3 text-left shadow-sm"
                     style={{ top: dueTimeTop(item.due), left: `${index * 12}px`, width: `calc(100% - ${index * 12}px)` }}
                   >
                     <span className="text-[11px] font-semibold leading-[14px]" style={{ color: colors[item.accent] }}>
@@ -588,7 +616,7 @@ const UpdateIconDock = () => {
       </div>
 
       {activeKind && (
-        <div className="max-h-[420px] overflow-auto rounded-md border border-rule bg-page shadow-sm">
+        <div className="motion-pop max-h-[420px] overflow-auto rounded-md border border-rule bg-page shadow-sm">
           <div className="sticky top-0 z-10 border-b border-rule bg-page px-4 py-3">
             <h2 className="text-h3 font-semibold text-ink">
               {iconButtons.find((item) => item.id === activeKind)?.label}
@@ -617,7 +645,7 @@ const NotificationRow = ({
   meta: string;
   onDismiss?: () => void;
 }) => (
-  <div className="flex items-start gap-3 border-b border-rule p-4 last:border-b-0">
+  <div className="motion-soft flex items-start gap-3 border-b border-rule p-4 last:border-b-0 hover:bg-paper">
     <div
       className="h-10 w-10 flex-shrink-0 rounded-sm"
       style={{ backgroundColor: colors[accent] }}
