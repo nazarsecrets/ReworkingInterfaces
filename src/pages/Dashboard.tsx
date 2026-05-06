@@ -168,13 +168,21 @@ const dueItems = [
 
 const courseInitial = (course: string) => course.charAt(0);
 
-const calendarTimeTop = (hour24: number, minute: number) => {
+const timelineHours = [9, 12, 15, 18, 21];
+
+const calendarTimePercent = (hour24: number, minute: number) => {
   const minutes = hour24 * 60 + minute;
   const dayStart = 8 * 60;
   const dayEnd = 24 * 60;
   const percent = ((minutes - dayStart) / (dayEnd - dayStart)) * 100;
 
-  return `${Math.min(68, Math.max(16, percent))}%`;
+  return Math.min(100, Math.max(0, percent));
+};
+
+const timelineGridTop = (percent: number) => {
+  const eventAreaTop = 96;
+  const eventAreaBottom = 16;
+  return `calc(${eventAreaTop}px + (100% - ${eventAreaTop + eventAreaBottom}px) * ${percent / 100})`;
 };
 
 const dueTimeTop = (due: string) => {
@@ -186,7 +194,7 @@ const dueTimeTop = (due: string) => {
   const period = match[3].toUpperCase();
   const hour24 = (hour % 12) + (period === "PM" ? 12 : 0);
 
-  return calendarTimeTop(hour24, minute);
+  return `${Math.min(92, calendarTimePercent(hour24, minute))}%`;
 };
 
 const formatCurrentTime = (date: Date) =>
@@ -202,7 +210,7 @@ const useCurrentTimeMarker = () => {
 
   return {
     label: formatCurrentTime(now),
-    top: calendarTimeTop(now.getHours(), now.getMinutes()),
+    top: timelineGridTop(calendarTimePercent(now.getHours(), now.getMinutes())),
   };
 };
 
@@ -238,8 +246,8 @@ const PageIntro = () => (
     <div className="text-caption font-medium uppercase tracking-[0.12em] text-crimson">
       Spring 2026 · Week 11
     </div>
-    <div className="flex items-end justify-between gap-8">
-      <h1 className="text-[40px] font-bold leading-[48px] tracking-[-0.02em] text-ink">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
+      <h1 className="text-[34px] font-bold leading-[40px] tracking-[-0.02em] text-ink md:text-[40px] md:leading-[48px]">
         Welcome back, Shreeya.
       </h1>
       <p className="text-small text-slate">3 due this week · 4 active courses</p>
@@ -317,19 +325,19 @@ const CalendarWorkspace = ({
   const currentTime = useCurrentTimeMarker();
 
   return (
-    <section className="relative min-h-[430px] overflow-visible rounded-md border border-rule bg-paper p-8">
-      <div className="flex items-center justify-between">
+    <section className="relative overflow-hidden rounded-md border border-rule bg-paper p-4 md:p-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-[32px] font-bold leading-10 tracking-[-0.015em] text-ink">
+          <h2 className="text-[28px] font-bold leading-9 tracking-[-0.015em] text-ink md:text-[32px] md:leading-10">
             To Do
           </h2>
           <p className="text-small text-slate">Deadlines placed directly into the week view</p>
         </div>
-        <div className="flex rounded-md border border-rule bg-page p-1">
+        <div className="flex w-full overflow-x-auto rounded-md border border-rule bg-page p-1 lg:w-auto">
           {calendarDays.map((day) => (
             <div
               key={day.date}
-              className={`flex h-14 w-16 flex-col items-center justify-center rounded text-[12px] font-semibold ${
+              className={`flex h-14 min-w-16 flex-col items-center justify-center rounded text-[12px] font-semibold ${
                 day.active ? "bg-crimson text-white" : "text-slate"
               }`}
             >
@@ -340,7 +348,21 @@ const CalendarWorkspace = ({
         </div>
       </div>
 
-      <div className="relative mt-8 grid min-h-[320px] grid-cols-5 gap-px overflow-visible rounded-md border border-rule bg-rule">
+      <div className="mt-6 overflow-x-auto pb-2 md:mt-8">
+      <div className="relative grid min-h-[500px] min-w-[760px] grid-cols-[56px_repeat(5,minmax(0,1fr))] gap-px overflow-hidden rounded-md border border-rule bg-rule md:min-h-[520px] xl:min-w-0">
+        {timelineHours.map((hour) => (
+          <div
+            key={hour}
+            className="pointer-events-none absolute left-0 right-0 z-10 flex items-center"
+            style={{ top: timelineGridTop(calendarTimePercent(hour, 0)) }}
+            aria-hidden="true"
+          >
+            <span className="w-14 bg-page px-2 text-[10px] font-medium leading-3 text-slate">
+              {hour > 12 ? hour - 12 : hour}:00
+            </span>
+            <span className="h-px flex-1 bg-rule" />
+          </div>
+        ))}
         <div
           className="pointer-events-none absolute left-0 right-0 z-20 flex items-center"
           style={{ top: currentTime.top }}
@@ -351,6 +373,7 @@ const CalendarWorkspace = ({
           </span>
           <span className="h-px flex-1 bg-crimson" />
         </div>
+        <div className="bg-page" aria-hidden="true" />
         {calendarDays.map((day) => (
           <div key={day.date} className="relative flex flex-col gap-3 bg-page p-4">
             <div className={day.active ? "text-crimson" : "text-slate"}>
@@ -360,7 +383,7 @@ const CalendarWorkspace = ({
               <div className="text-[18px] font-semibold">{day.date}</div>
             </div>
             {mode === "blobs" ? (
-              <div className="absolute inset-x-4 bottom-4 top-20">
+              <div className="absolute inset-x-4 bottom-4 top-24">
                 {dueItems.filter((item) => item.date === day.date).map((item, index) => (
                   <TooltipHint
                     key={item.id}
@@ -380,12 +403,13 @@ const CalendarWorkspace = ({
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
-                {dueItems.filter((item) => item.date === day.date).map((item) => (
+              <div className="absolute inset-x-4 bottom-4 top-24">
+                {dueItems.filter((item) => item.date === day.date).map((item, index) => (
                   <button
                     key={item.id}
                     type="button"
-                    className="flex flex-col rounded-md border border-rule bg-paper px-3 py-2 text-left"
+                    className="absolute flex w-full -translate-y-1/2 flex-col rounded-md border border-rule bg-paper px-3 py-3 text-left shadow-sm"
+                    style={{ top: dueTimeTop(item.due), left: `${index * 12}px`, width: `calc(100% - ${index * 12}px)` }}
                   >
                     <span className="text-[11px] font-semibold leading-[14px]" style={{ color: colors[item.accent] }}>
                       Due {item.due}
@@ -400,6 +424,7 @@ const CalendarWorkspace = ({
             )}
           </div>
         ))}
+      </div>
       </div>
 
       {showCourseCalendarAction && (
@@ -438,15 +463,15 @@ const CourseSummaryRows = () => (
     </div>
     <div className="overflow-hidden rounded-md border border-rule">
       {courses.map((course) => (
-        <div key={course.code} className="grid grid-cols-[160px_1fr_130px] items-center gap-6 border-b border-rule bg-paper p-5 last:border-b-0">
-          <div className="rounded-md bg-page p-4 text-small font-semibold text-ink">
+        <div key={course.code} className="grid grid-cols-1 gap-3 border-b border-rule bg-paper p-4 last:border-b-0 sm:grid-cols-[130px_1fr_100px] sm:items-center md:grid-cols-[160px_1fr_130px] md:gap-6 md:p-5">
+          <div className="rounded-md bg-page p-3 text-small font-semibold text-ink md:p-4">
             {course.schedule}
           </div>
           <div>
             <div className="text-small font-semibold text-ink">{course.title}</div>
             <div className="text-[12px] leading-4 text-slate">{course.instructor}</div>
           </div>
-          <div className="rounded-md bg-page p-4 text-center text-[12px] font-semibold text-slate">
+          <div className="rounded-md bg-page p-3 text-left text-[12px] font-semibold text-slate sm:text-center md:p-4">
             {course.dueCount} due
           </div>
         </div>
@@ -630,13 +655,13 @@ const CourseStreamTabs = () => (
 );
 
 const DashboardView = () => (
-  <div className="flex flex-1 overflow-hidden">
-    <main className="flex flex-1 flex-col gap-10 p-12">
+  <div className="flex flex-1 flex-col overflow-auto xl:flex-row">
+    <main className="flex min-w-0 flex-1 flex-col gap-10 p-4 md:p-8 xl:p-12">
       <PageIntro />
       <CoursesSection />
     </main>
 
-    <aside className="flex w-rail flex-shrink-0 flex-col gap-8 border-l border-rule bg-paper py-12 pl-8 pr-12">
+    <aside className="flex w-full flex-shrink-0 flex-col gap-8 border-t border-rule bg-paper p-4 md:p-8 xl:w-rail xl:border-l xl:border-t-0 xl:py-12 xl:pl-8 xl:pr-12">
       <TodoList items={todos} />
       <section className="flex flex-col gap-4">
         <h2 className="text-caption font-semibold uppercase tracking-[0.12em] text-slate">
@@ -661,13 +686,13 @@ const DashboardView = () => (
 );
 
 const Iteration3View = () => (
-  <div className="flex flex-1 overflow-auto">
-    <main className="flex flex-1 flex-col gap-9 overflow-auto p-12">
+  <div className="flex flex-1 flex-col overflow-auto xl:flex-row">
+    <main className="flex min-w-0 flex-1 flex-col gap-9 overflow-auto p-4 md:p-8 xl:p-12">
       <PageIntro />
       <CalendarWorkspace mode="blobs" />
       <CourseSummaryRows />
     </main>
-    <aside className="flex w-[420px] flex-shrink-0 flex-col gap-8 overflow-auto border-l border-rule bg-paper p-8">
+    <aside className="flex w-full flex-shrink-0 flex-col gap-8 overflow-auto border-t border-rule bg-paper p-4 md:p-8 xl:w-[420px] xl:border-l xl:border-t-0">
       <UpdateIconDock />
       <SideList title="Feedback" />
     </aside>
@@ -675,13 +700,13 @@ const Iteration3View = () => (
 );
 
 const Iteration4View = () => (
-  <div className="flex flex-1 overflow-auto">
-    <main className="flex flex-1 flex-col gap-9 overflow-auto p-12">
+  <div className="flex flex-1 flex-col overflow-auto xl:flex-row">
+    <main className="flex min-w-0 flex-1 flex-col gap-9 overflow-auto p-4 md:p-8 xl:p-12">
       <PageIntro />
       <CalendarWorkspace mode="blocks" showCourseCalendarAction />
       <CourseSummaryRows />
     </main>
-    <aside className="flex w-[470px] flex-shrink-0 flex-col gap-8 overflow-auto border-l border-rule bg-paper p-8">
+    <aside className="flex w-full flex-shrink-0 flex-col gap-8 overflow-auto border-t border-rule bg-paper p-4 md:p-8 xl:w-[470px] xl:border-l xl:border-t-0">
       <TabbedUpdates />
       <CourseStreamTabs />
     </aside>
@@ -692,7 +717,7 @@ export const Dashboard = () => {
   const [view, setView] = useState<ViewMode>("dashboard");
 
   return (
-  <div className="flex h-full bg-page">
+  <div className="flex h-full flex-col bg-page pb-16 md:flex-row md:pb-0">
     <Sidebar />
     <div className="flex min-w-0 flex-1 flex-col">
       <Topbar
@@ -700,7 +725,7 @@ export const Dashboard = () => {
         userInitials="SR"
         context="Spring 2026 · IU Bloomington"
       />
-      <div className="border-b border-rule px-12 py-3">
+      <div className="overflow-x-auto border-b border-rule px-4 py-3 md:px-12">
         <ViewSwitcher active={view} onChange={setView} />
       </div>
       {view === "dashboard" && <DashboardView />}

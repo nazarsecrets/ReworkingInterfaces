@@ -7,8 +7,8 @@ type TopbarProps = {
 };
 
 export const Topbar = ({ userName, userInitials, context }: TopbarProps) => (
-  <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-4 border-b border-rule bg-page px-6 py-5 md:px-12">
-    <label className="flex min-w-[240px] max-w-[360px] flex-1 items-center gap-3 rounded-md border border-rule bg-paper px-4 py-2.5 text-slate">
+  <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 border-b border-rule bg-page px-4 py-4 md:gap-4 md:px-12 md:py-5">
+    <label className="order-2 flex w-full min-w-0 items-center gap-3 rounded-md border border-rule bg-paper px-4 py-2.5 text-slate sm:order-1 sm:max-w-[360px] sm:flex-1">
       <span className="sr-only">Search</span>
       <SearchIcon className="flex-shrink-0" />
       <input
@@ -17,7 +17,7 @@ export const Topbar = ({ userName, userInitials, context }: TopbarProps) => (
         className="min-w-0 flex-1 bg-transparent text-small text-ink outline-none placeholder:text-slate"
       />
     </label>
-    <div className="flex flex-shrink-0 items-center gap-6">
+    <div className="order-1 flex w-full flex-shrink-0 items-center justify-between gap-4 sm:order-2 sm:w-auto sm:justify-start sm:gap-6">
       <button
         type="button"
         aria-label="Notifications"
@@ -33,7 +33,7 @@ export const Topbar = ({ userName, userInitials, context }: TopbarProps) => (
           <span className="text-small font-semibold leading-[18px] text-ink">
             {userName}
           </span>
-          <span className="text-caption font-normal normal-case tracking-normal text-slate">
+          <span className="hidden text-caption font-normal normal-case tracking-normal text-slate sm:block">
             {context}
           </span>
         </div>
