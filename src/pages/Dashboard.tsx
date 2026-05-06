@@ -1,0 +1,712 @@
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { Sidebar } from "../components/Sidebar";
+import { Topbar } from "../components/Topbar";
+import { CourseCard } from "../components/CourseCard";
+import { TodoList, type TodoItem } from "../components/TodoList";
+import { Announcement } from "../components/Announcement";
+import { BellIcon, ChatIcon, CheckIcon } from "../components/icons";
+import { colors, type ColorToken } from "../tokens";
+
+const courses = [
+  {
+    code: "COGS-Q 240 · 35421",
+    title: "Introduction to Cognitive Science",
+    instructor: "Prof. Dana Reyes",
+    schedule: "TR 11:30",
+    dueCount: 2,
+    postCount: 12,
+    accent: "crimson" as const,
+  },
+  {
+    code: "ENGL-L 230 · 11782",
+    title: "Modern Literary Theory",
+    instructor: "Prof. Atanasov",
+    schedule: "MWF 10:00",
+    dueCount: 1,
+    postCount: 8,
+    accent: "ink" as const,
+  },
+  {
+    code: "STAT-S 350 · 24905",
+    title: "Statistical Modeling I",
+    instructor: "Prof. K. Lin",
+    schedule: "TR 14:00",
+    dueCount: 0,
+    postCount: 5,
+    accent: "info" as const,
+  },
+  {
+    code: "INFO-I 300 · 30118",
+    title: "Human-Computer Interaction",
+    instructor: "Prof. M. Park",
+    schedule: "MW 13:00",
+    dueCount: 3,
+    postCount: 21,
+    accent: "success" as const,
+  },
+];
+
+const todos: TodoItem[] = [
+  {
+    title: "Reading Response 7",
+    meta: "COGS-Q 240 · Due tonight 11:59 PM",
+    points: 8,
+    urgency: "error",
+  },
+  {
+    title: "Problem Set 5",
+    meta: "STAT-S 350 · Due Wed 11:59 PM",
+    points: 25,
+    urgency: "warning",
+  },
+  {
+    title: "HCI Field Study Draft",
+    meta: "INFO-I 300 · Due Fri 5:00 PM",
+    points: 40,
+    urgency: "slate",
+  },
+];
+
+type ViewMode = "dashboard" | "iteration3" | "iteration4";
+type UpdateKind = "announcements" | "feedback" | "discussions";
+
+const calendarDays = [
+  {
+    label: "MON",
+    date: "30",
+    events: [
+      { time: "11:30", title: "COGS Lecture", accent: "ink" as ColorToken },
+      {
+        time: "DUE 11:59PM",
+        title: "Reading Resp. 7",
+        accent: "error" as ColorToken,
+        tone: "bg-[#F7E2E5]",
+      },
+    ],
+  },
+  {
+    label: "TUE",
+    date: "31",
+    events: [{ time: "14:00", title: "STAT Lab", accent: "ink" as ColorToken }],
+  },
+  {
+    label: "WED · TODAY",
+    date: "01",
+    active: true,
+    events: [
+      { time: "13:00", title: "HCI Studio", accent: "ink" as ColorToken },
+      {
+        time: "DUE 11:59PM",
+        title: "PSet 5",
+        accent: "warning" as ColorToken,
+        tone: "bg-[#F2E8D8]",
+      },
+    ],
+  },
+  {
+    label: "THU",
+    date: "02",
+    events: [{ time: "11:30", title: "COGS Lecture", accent: "ink" as ColorToken }],
+  },
+  {
+    label: "FRI",
+    date: "03",
+    events: [
+      { time: "10:00", title: "ENGL Seminar", accent: "ink" as ColorToken },
+      {
+        time: "DUE 5:00PM",
+        title: "HCI Draft",
+        accent: "warning" as ColorToken,
+        tone: "bg-[#F2E8D8]",
+      },
+    ],
+  },
+];
+
+const dueItems = [
+  {
+    id: "lab-reflection",
+    date: "31",
+    title: "Lab Reflection",
+    course: "STAT-S 350",
+    due: "2:00 PM",
+    accent: "info" as ColorToken,
+  },
+  {
+    id: "reading-response",
+    date: "01",
+    title: "Reading Response 7",
+    course: "COGS-Q 240",
+    due: "11:59 PM",
+    accent: "crimson" as ColorToken,
+  },
+  {
+    id: "problem-set",
+    date: "01",
+    title: "Problem Set 5",
+    course: "STAT-S 350",
+    due: "11:59 PM",
+    accent: "info" as ColorToken,
+  },
+  {
+    id: "hci-draft",
+    date: "03",
+    title: "HCI Field Study Draft",
+    course: "INFO-I 300",
+    due: "5:00 PM",
+    accent: "success" as ColorToken,
+  },
+  {
+    id: "theory-note",
+    date: "30",
+    title: "Theory note annotation",
+    course: "ENGL-L 230",
+    due: "9:00 PM",
+    accent: "ink" as ColorToken,
+  },
+];
+
+const courseInitial = (course: string) => course.charAt(0);
+
+const calendarTimeTop = (hour24: number, minute: number) => {
+  const minutes = hour24 * 60 + minute;
+  const dayStart = 8 * 60;
+  const dayEnd = 24 * 60;
+  const percent = ((minutes - dayStart) / (dayEnd - dayStart)) * 100;
+
+  return `${Math.min(68, Math.max(16, percent))}%`;
+};
+
+const dueTimeTop = (due: string) => {
+  const match = due.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
+  if (!match) return "50%";
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2] ?? 0);
+  const period = match[3].toUpperCase();
+  const hour24 = (hour % 12) + (period === "PM" ? 12 : 0);
+
+  return calendarTimeTop(hour24, minute);
+};
+
+const formatCurrentTime = (date: Date) =>
+  date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+const useCurrentTimeMarker = () => {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  return {
+    label: formatCurrentTime(now),
+    top: calendarTimeTop(now.getHours(), now.getMinutes()),
+  };
+};
+
+const updateContent: Record<UpdateKind, { id: string; course: string; accent: ColorToken; title: string; meta: string }[]> = {
+  announcements: [
+    { id: "a1", course: "COGS-Q 240", accent: "crimson", title: "Office hours moved to Wells Library", meta: "Prof. Reyes · 2 hours ago" },
+    { id: "a2", course: "STAT-S 350", accent: "info", title: "Midterm review session Saturday", meta: "Prof. Lin · Yesterday" },
+    { id: "a3", course: "INFO-I 300", accent: "success", title: "Studio critique groups posted", meta: "Prof. Park · Yesterday" },
+    { id: "a4", course: "ENGL-L 230", accent: "ink", title: "Bring printed annotation notes", meta: "Prof. Atanasov · Mon" },
+    { id: "a5", course: "COGS-Q 240", accent: "crimson", title: "Guest talk slides available", meta: "Course staff · Mon" },
+    { id: "a6", course: "STAT-S 350", accent: "info", title: "Lab data file corrected", meta: "TA team · Sun" },
+  ],
+  feedback: [
+    { id: "f1", course: "INFO-I 300", accent: "success", title: "Field Study Draft comments returned", meta: "Prof. Park · 45 min ago" },
+    { id: "f2", course: "COGS-Q 240", accent: "crimson", title: "Response 6 rubric notes", meta: "Prof. Reyes · 3 hours ago" },
+    { id: "f3", course: "STAT-S 350", accent: "info", title: "Problem Set 4 score posted", meta: "Grades · Yesterday" },
+  ],
+  discussions: [
+    { id: "d1", course: "ENGL-L 230", accent: "ink", title: "Modernism thread has 4 replies", meta: "Discussion board · 1 hour ago" },
+    { id: "d2", course: "COGS-Q 240", accent: "crimson", title: "Perception reading question", meta: "Classmate · 4 hours ago" },
+    { id: "d3", course: "INFO-I 300", accent: "success", title: "Study recruitment examples", meta: "Studio group · Yesterday" },
+  ],
+};
+
+const tabs: { id: ViewMode; label: string }[] = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "iteration3", label: "Iteration 3" },
+  { id: "iteration4", label: "Iteration 4" },
+];
+
+const PageIntro = () => (
+  <header className="flex flex-col gap-3">
+    <div className="text-caption font-medium uppercase tracking-[0.12em] text-crimson">
+      Spring 2026 · Week 11
+    </div>
+    <div className="flex items-end justify-between gap-8">
+      <h1 className="text-[40px] font-bold leading-[48px] tracking-[-0.02em] text-ink">
+        Welcome back, Shreeya.
+      </h1>
+      <p className="text-small text-slate">3 due this week · 4 active courses</p>
+    </div>
+  </header>
+);
+
+const ViewSwitcher = ({
+  active,
+  onChange,
+}: {
+  active: ViewMode;
+  onChange: (mode: ViewMode) => void;
+}) => (
+  <div className="flex w-fit rounded-md border border-rule bg-paper p-1">
+    {tabs.map((tab) => (
+      <button
+        key={tab.id}
+        type="button"
+        onClick={() => onChange(tab.id)}
+        className={`rounded px-4 py-2 text-[13px] font-semibold leading-[18px] ${
+          active === tab.id ? "bg-page text-ink shadow-sm" : "text-slate"
+        }`}
+      >
+        {tab.label}
+      </button>
+    ))}
+  </div>
+);
+
+const CoursesSection = ({ compact = false }: { compact?: boolean }) => (
+  <section className="flex flex-col gap-5">
+    <div className="flex items-baseline justify-between border-b border-rule pb-3">
+      <h2 className="text-h3 font-semibold text-ink">Your courses</h2>
+      <a href="#" className="text-[13px] font-medium leading-[18px] text-crimson">
+        View all →
+      </a>
+    </div>
+    <div className="flex flex-wrap gap-6">
+      {courses.map((c) => (
+        compact ? <CompactCourseCard key={c.code} {...c} /> : <CourseCard key={c.code} {...c} />
+      ))}
+    </div>
+  </section>
+);
+
+const CompactCourseCard = ({
+  code,
+  title,
+  dueCount,
+  postCount,
+  accent = "crimson",
+}: (typeof courses)[number]) => (
+  <article className="flex min-w-[240px] flex-1 flex-col overflow-hidden rounded-md border border-rule bg-page">
+    <div className="h-1.5" style={{ backgroundColor: colors[accent] }} />
+    <div className="flex flex-col gap-1.5 p-4">
+      <div className="text-[11px] font-medium uppercase leading-[14px] tracking-[0.08em] text-slate">
+        {code.split(" · ")[0]}
+      </div>
+      <h3 className="text-small font-semibold text-ink">{title}</h3>
+      <div className="text-[12px] leading-4 text-slate">
+        {dueCount} due · {postCount} posts
+      </div>
+    </div>
+  </article>
+);
+
+const CalendarWorkspace = ({
+  mode = "blobs",
+  showCourseCalendarAction = false,
+}: {
+  mode?: "blobs" | "blocks";
+  showCourseCalendarAction?: boolean;
+}) => {
+  const currentTime = useCurrentTimeMarker();
+
+  return (
+    <section className="relative min-h-[430px] overflow-visible rounded-md border border-rule bg-paper p-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-[32px] font-bold leading-10 tracking-[-0.015em] text-ink">
+            To Do
+          </h2>
+          <p className="text-small text-slate">Deadlines placed directly into the week view</p>
+        </div>
+        <div className="flex rounded-md border border-rule bg-page p-1">
+          {calendarDays.map((day) => (
+            <div
+              key={day.date}
+              className={`flex h-14 w-16 flex-col items-center justify-center rounded text-[12px] font-semibold ${
+                day.active ? "bg-crimson text-white" : "text-slate"
+              }`}
+            >
+              <span>{day.date}</span>
+              <span>{day.label.split(" ")[0]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative mt-8 grid min-h-[320px] grid-cols-5 gap-px overflow-visible rounded-md border border-rule bg-rule">
+        <div
+          className="pointer-events-none absolute left-0 right-0 z-20 flex items-center"
+          style={{ top: currentTime.top }}
+          aria-hidden="true"
+        >
+          <span className="ml-2 rounded-sm bg-crimson px-1.5 py-0.5 text-[10px] font-semibold leading-3 text-white">
+            {currentTime.label}
+          </span>
+          <span className="h-px flex-1 bg-crimson" />
+        </div>
+        {calendarDays.map((day) => (
+          <div key={day.date} className="relative flex flex-col gap-3 bg-page p-4">
+            <div className={day.active ? "text-crimson" : "text-slate"}>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.08em]">
+                {day.label}
+              </div>
+              <div className="text-[18px] font-semibold">{day.date}</div>
+            </div>
+            {mode === "blobs" ? (
+              <div className="absolute inset-x-4 bottom-4 top-20">
+                {dueItems.filter((item) => item.date === day.date).map((item, index) => (
+                  <TooltipHint
+                    key={item.id}
+                    label={`${item.course}: ${item.title} due ${item.due}`}
+                    className="absolute -translate-y-1/2"
+                    style={{ top: dueTimeTop(item.due), left: `${index * 42}px` }}
+                  >
+                    <button
+                      type="button"
+                      aria-label={`${item.title} due ${item.due}`}
+                      className="flex h-9 w-9 items-center justify-center rounded-sm border border-black/10 text-[13px] font-bold text-white shadow-sm"
+                      style={{ backgroundColor: colors[item.accent] }}
+                    >
+                      {courseInitial(item.course)}
+                    </button>
+                  </TooltipHint>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {dueItems.filter((item) => item.date === day.date).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="flex flex-col rounded-md border border-rule bg-paper px-3 py-2 text-left"
+                  >
+                    <span className="text-[11px] font-semibold leading-[14px]" style={{ color: colors[item.accent] }}>
+                      Due {item.due}
+                    </span>
+                    <span className="truncate text-[12px] font-semibold leading-4 text-ink">
+                      {item.title}
+                    </span>
+                    <span className="truncate text-[11px] leading-[14px] text-slate">{item.course}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {showCourseCalendarAction && (
+        <button className={mode === "blocks" ? "ml-auto mt-5 flex rounded-md bg-ink px-6 py-3 text-small font-semibold text-white" : "absolute bottom-8 right-8 rounded-md bg-ink px-6 py-3 text-small font-semibold text-white"}>
+          Course Calendar
+        </button>
+      )}
+    </section>
+  );
+};
+
+const TooltipHint = ({
+  label,
+  children,
+  className = "",
+  style,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}) => (
+  <span className={`group relative inline-flex ${className}`} style={style}>
+    {children}
+    <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-56 -translate-x-1/2 rounded-md bg-ink px-3 py-2 text-[12px] font-medium leading-4 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      {label}
+    </span>
+  </span>
+);
+
+const CourseSummaryRows = () => (
+  <section className="flex flex-col gap-4">
+    <div>
+      <h2 className="text-h3 font-semibold text-ink">Course Summary</h2>
+      <p className="text-small text-slate">Upcoming work grouped by course, date, details, and due status.</p>
+    </div>
+    <div className="overflow-hidden rounded-md border border-rule">
+      {courses.map((course) => (
+        <div key={course.code} className="grid grid-cols-[160px_1fr_130px] items-center gap-6 border-b border-rule bg-paper p-5 last:border-b-0">
+          <div className="rounded-md bg-page p-4 text-small font-semibold text-ink">
+            {course.schedule}
+          </div>
+          <div>
+            <div className="text-small font-semibold text-ink">{course.title}</div>
+            <div className="text-[12px] leading-4 text-slate">{course.instructor}</div>
+          </div>
+          <div className="rounded-md bg-page p-4 text-center text-[12px] font-semibold text-slate">
+            {course.dueCount} due
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+);
+
+const UpdateIconDock = () => {
+  const [activeKind, setActiveKind] = useState<UpdateKind | null>(null);
+  const activeItems = activeKind ? updateContent[activeKind] : [];
+  const iconButtons: { id: UpdateKind; label: string; icon: JSX.Element }[] = [
+    { id: "announcements", label: "Announcements", icon: <BellIcon /> },
+    { id: "feedback", label: "Feedback", icon: <CheckIcon /> },
+    { id: "discussions", label: "Discussions", icon: <ChatIcon /> },
+  ];
+
+  return (
+    <section className="relative flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        {iconButtons.map((item) => (
+          <TooltipHint key={item.id} label={`${updateContent[item.id].length} pending ${item.label.toLowerCase()}`}>
+            <button
+              type="button"
+              onMouseEnter={() => setActiveKind(item.id)}
+              onFocus={() => setActiveKind(item.id)}
+              onClick={() => setActiveKind(item.id)}
+              className={`flex h-12 w-12 items-center justify-center rounded-md border ${
+                activeKind === item.id ? "border-ink bg-ink text-white" : "border-rule bg-page text-slate"
+              }`}
+              aria-pressed={activeKind === item.id}
+              aria-label={item.label}
+            >
+              {item.icon}
+            </button>
+          </TooltipHint>
+        ))}
+      </div>
+
+      {activeKind && (
+        <div className="max-h-[420px] overflow-auto rounded-md border border-rule bg-page shadow-sm">
+          <div className="sticky top-0 z-10 border-b border-rule bg-page px-4 py-3">
+            <h2 className="text-h3 font-semibold text-ink">
+              {iconButtons.find((item) => item.id === activeKind)?.label}
+            </h2>
+            <p className="text-[12px] leading-4 text-slate">Floating panel · scrolls after 5 pending</p>
+          </div>
+          {activeItems.map((item) => (
+            <NotificationRow key={item.id} {...item} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+};
+
+const NotificationRow = ({
+  course,
+  accent,
+  title,
+  meta,
+  onDismiss,
+}: {
+  course: string;
+  accent: ColorToken;
+  title: string;
+  meta: string;
+  onDismiss?: () => void;
+}) => (
+  <div className="flex items-start gap-3 border-b border-rule p-4 last:border-b-0">
+    <div
+      className="h-10 w-10 flex-shrink-0 rounded-sm"
+      style={{ backgroundColor: colors[accent] }}
+    />
+    <div className="min-w-0 flex-1">
+      <div className="text-[11px] font-medium uppercase leading-[14px] tracking-[0.08em] text-slate">
+        {course}
+      </div>
+      <div className="text-small font-semibold text-ink">{title}</div>
+      <div className="truncate text-[12px] leading-4 text-slate">{meta}</div>
+    </div>
+    {onDismiss && (
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="h-8 w-8 flex-shrink-0 rounded-md text-small font-semibold text-slate hover:bg-paper hover:text-ink"
+        aria-label={`Dismiss ${title}`}
+      >
+        X
+      </button>
+    )}
+  </div>
+);
+
+const SideList = ({ title }: { title: string }) => (
+  <section className="flex flex-col gap-4">
+    <h2 className="text-h3 font-semibold text-ink">{title}</h2>
+    <div className="overflow-hidden rounded-md border border-rule bg-page">
+      {todos.map((item) => (
+        <div key={item.title} className="flex items-start gap-3 border-b border-rule p-4 last:border-b-0">
+          <div className="h-10 w-10 flex-shrink-0 rounded bg-paper" />
+          <div className="min-w-0 flex-1">
+            <div className="text-small font-semibold text-ink">{item.title}</div>
+            <div className="truncate text-[12px] leading-4 text-slate">{item.meta}</div>
+          </div>
+          <button className="text-small font-semibold text-slate">X</button>
+        </div>
+      ))}
+    </div>
+  </section>
+);
+
+const TabbedUpdates = () => {
+  const [activeKind, setActiveKind] = useState<Extract<UpdateKind, "announcements" | "feedback">>("announcements");
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  const visibleItems = updateContent[activeKind].filter((item) => !hiddenIds.includes(item.id));
+  const tabLabels: { id: Extract<UpdateKind, "announcements" | "feedback">; label: string }[] = [
+    { id: "announcements", label: "Announcements" },
+    { id: "feedback", label: "Feedback" },
+  ];
+
+  return (
+    <section className="overflow-hidden rounded-md border border-rule bg-page">
+      <div className="grid grid-cols-2 border-b border-rule">
+        {tabLabels.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveKind(tab.id)}
+            className={`px-4 py-4 text-small font-semibold ${
+              activeKind === tab.id ? "bg-ink text-white" : "bg-paper text-ink"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div className="max-h-[390px] overflow-auto">
+        {visibleItems.length > 0 ? (
+          visibleItems.map((item) => (
+            <NotificationRow
+              key={item.id}
+              {...item}
+              onDismiss={() => setHiddenIds((current) => [...current, item.id])}
+            />
+          ))
+        ) : (
+          <div className="p-6 text-small text-slate">No unread {activeKind}.</div>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const CourseStreamTabs = () => (
+  <section className="overflow-hidden rounded-md border border-rule bg-page">
+    <div className="grid grid-cols-2 border-b border-rule">
+      <button className="bg-paper px-4 py-4 text-small font-semibold text-ink">
+        Course Stream
+      </button>
+      <button className="bg-ink px-4 py-4 text-small font-semibold text-white">
+        Course Notification
+      </button>
+    </div>
+    <div>
+      {courses.slice(0, 4).map((course) => (
+        <div key={course.code} className="flex items-start gap-3 border-b border-rule p-4 last:border-b-0">
+          <div
+            className="h-12 w-12 flex-shrink-0 rounded"
+            style={{ backgroundColor: colors[course.accent] }}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="text-small font-semibold text-ink">{course.title}</div>
+            <div className="truncate text-[12px] leading-4 text-slate">{course.code}</div>
+          </div>
+          <button className="text-small font-semibold text-slate">X</button>
+        </div>
+      ))}
+    </div>
+  </section>
+);
+
+const DashboardView = () => (
+  <div className="flex flex-1 overflow-hidden">
+    <main className="flex flex-1 flex-col gap-10 p-12">
+      <PageIntro />
+      <CoursesSection />
+    </main>
+
+    <aside className="flex w-rail flex-shrink-0 flex-col gap-8 border-l border-rule bg-paper py-12 pl-8 pr-12">
+      <TodoList items={todos} />
+      <section className="flex flex-col gap-4">
+        <h2 className="text-caption font-semibold uppercase tracking-[0.12em] text-slate">
+          Recent announcements
+        </h2>
+        <Announcement
+          course="COGS-Q 240"
+          courseAccent="crimson"
+          title="Office hours moved to Wells Library"
+          body="Effective this week, Tuesday office hours will be held in Wells Library room E174 instead of Psych 128."
+          meta="Prof. Reyes · 2 hours ago"
+        />
+        <Announcement
+          course="STAT-S 350"
+          courseAccent="info"
+          title="Midterm review session Saturday"
+          meta="Prof. Lin · Yesterday"
+        />
+      </section>
+    </aside>
+  </div>
+);
+
+const Iteration3View = () => (
+  <div className="flex flex-1 overflow-auto">
+    <main className="flex flex-1 flex-col gap-9 overflow-auto p-12">
+      <PageIntro />
+      <CalendarWorkspace mode="blobs" />
+      <CourseSummaryRows />
+    </main>
+    <aside className="flex w-[420px] flex-shrink-0 flex-col gap-8 overflow-auto border-l border-rule bg-paper p-8">
+      <UpdateIconDock />
+      <SideList title="Feedback" />
+    </aside>
+  </div>
+);
+
+const Iteration4View = () => (
+  <div className="flex flex-1 overflow-auto">
+    <main className="flex flex-1 flex-col gap-9 overflow-auto p-12">
+      <PageIntro />
+      <CalendarWorkspace mode="blocks" showCourseCalendarAction />
+      <CourseSummaryRows />
+    </main>
+    <aside className="flex w-[470px] flex-shrink-0 flex-col gap-8 overflow-auto border-l border-rule bg-paper p-8">
+      <TabbedUpdates />
+      <CourseStreamTabs />
+    </aside>
+  </div>
+);
+
+export const Dashboard = () => {
+  const [view, setView] = useState<ViewMode>("dashboard");
+
+  return (
+  <div className="flex h-full bg-page">
+    <Sidebar />
+    <div className="flex min-w-0 flex-1 flex-col">
+      <Topbar
+        userName="Shreeya Rokade"
+        userInitials="SR"
+        context="Spring 2026 · IU Bloomington"
+      />
+      <div className="border-b border-rule px-12 py-3">
+        <ViewSwitcher active={view} onChange={setView} />
+      </div>
+      {view === "dashboard" && <DashboardView />}
+      {view === "iteration3" && <Iteration3View />}
+      {view === "iteration4" && <Iteration4View />}
+    </div>
+  </div>
+  );
+};
