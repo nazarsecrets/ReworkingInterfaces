@@ -272,6 +272,25 @@ const dueAnchor = (due: string): "above" | "below" | "center" => {
   return "center";
 };
 
+const dueBlockStyle = (due: string): CSSProperties => {
+  const match = due.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
+  if (!match) return { top: dueTimeTop(due), transform: "translateY(-50%)" };
+
+  const hour = Number(match[1]);
+  const period = match[3].toUpperCase();
+  const hour24 = (hour % 12) + (period === "PM" ? 12 : 0);
+
+  if (hour24 >= 22) return { bottom: 0 };
+
+  const anchor = dueAnchor(due);
+  const transform =
+    anchor === "below"
+      ? "translateY(0)"
+      : "translateY(-50%)";
+
+  return { top: dueTimeTop(due), transform };
+};
+
 const formatCurrentTime = (date: Date) =>
   date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -490,7 +509,7 @@ const CalendarWorkspace = ({
           })}
         </div>
       ) : (
-        <div className="relative grid gap-px overflow-hidden rounded-md border border-rule bg-rule xl:min-w-0" style={{ height: gridHeight, minWidth: gridMinWidth, gridTemplateColumns: `56px repeat(${calendarDays.length}, minmax(0, 1fr))` }}>
+        <div className="relative overflow-hidden rounded-md border border-rule bg-rule xl:min-w-0" style={{ height: gridHeight, minWidth: gridMinWidth }}>
           {timelineHours.map((hour) => (
             <div
               key={hour}
@@ -514,93 +533,98 @@ const CalendarWorkspace = ({
             </span>
             <span className="h-px flex-1 bg-crimson" />
           </div>
-          <div className="bg-page" aria-hidden="true" />
-          {calendarDays.map((day) => (
-            <div key={day.date} className="relative flex flex-col gap-3 bg-page p-4">
-              <div className={day.active ? "text-crimson" : "text-slate"}>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.08em]">
-                  {day.label}
+          <div
+            className="grid gap-px"
+            style={{ height: 96, gridTemplateColumns: `56px repeat(${calendarDays.length}, minmax(0, 1fr))` }}
+          >
+            <div className="bg-page" aria-hidden="true" />
+            {calendarDays.map((day) => (
+              <div key={day.date} className="relative flex h-24 flex-col gap-3 bg-page p-4">
+                <div className={day.active ? "text-crimson" : "text-slate"}>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.08em]">
+                    {day.label}
+                  </div>
+                  <div className="text-[18px] font-semibold">{day.date}</div>
                 </div>
-                <div className="text-[18px] font-semibold">{day.date}</div>
               </div>
-              <div className="absolute inset-x-4 bottom-4 top-24">
-                {Object.values(
-                  dueItems
-                    .filter((item) => item.date === day.date)
-                    .reduce<Record<string, { due: string; items: typeof dueItems }>>((acc, item) => {
-                      (acc[item.due] ??= { due: item.due, items: [] }).items.push(item);
-                      return acc;
-                    }, {})
-                ).map((group) =>
-                  group.items.length === 1 ? (
-                    (() => {
-                      const item = group.items[0];
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          className="absolute flex w-full -translate-y-1/2 flex-col rounded-md border border-rule bg-paper px-3 py-3 text-left shadow-sm"
-                          style={{ top: dueTimeTop(item.due) }}
-                        >
-                          <span className="text-[11px] font-semibold leading-[14px]" style={{ color: colors[item.accent] }}>
-                            Due {item.due}
-                          </span>
-                          <span className="truncate text-[12px] font-semibold leading-4 text-ink">
-                            {item.title}
-                          </span>
-                          <span className="truncate text-[11px] leading-[14px] text-slate">{item.course}</span>
-                        </button>
-                      );
-                    })()
-                  ) : (
-                    (() => {
-                      const anchor = dueAnchor(group.due);
-                      const transform =
-                        anchor === "above"
-                          ? "translateY(-100%)"
-                          : anchor === "below"
-                            ? "translateY(0)"
-                            : "translateY(-50%)";
-                      return (
-                    <div
-                      key={group.due}
-                      className="absolute z-30 flex w-full flex-col overflow-hidden rounded-md border border-rule bg-paper shadow-md"
-                      style={{ top: dueTimeTop(group.due), transform }}
-                    >
-                      <div className="flex items-center justify-between border-b border-rule/70 bg-bone/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate">
-                        <span>Due {group.due}</span>
-                        <span className="text-[10px] font-medium normal-case tracking-normal text-slate">
-                          {group.items.length} items
-                        </span>
-                      </div>
-                      <div className="flex flex-col divide-y divide-rule/60">
-                        {group.items.map((item) => (
+            ))}
+          </div>
+          <div
+            className="absolute bottom-0 left-0 right-0 top-24 grid gap-px"
+            style={{ gridTemplateColumns: `56px repeat(${calendarDays.length}, minmax(0, 1fr))` }}
+          >
+            <div className="bg-page" aria-hidden="true" />
+            {calendarDays.map((day) => (
+              <div key={day.date} className="relative bg-page p-4">
+                <div className="absolute inset-x-4 bottom-4 top-0">
+                  {Object.values(
+                    dueItems
+                      .filter((item) => item.date === day.date)
+                      .reduce<Record<string, { due: string; items: typeof dueItems }>>((acc, item) => {
+                        (acc[item.due] ??= { due: item.due, items: [] }).items.push(item);
+                        return acc;
+                      }, {})
+                  ).map((group) =>
+                    group.items.length === 1 ? (
+                      (() => {
+                        const item = group.items[0];
+                        return (
                           <button
                             key={item.id}
                             type="button"
-                            className="flex w-full items-stretch gap-2 px-3 py-2 text-left"
+                            className="absolute flex w-full -translate-y-1/2 flex-col rounded-md border border-rule bg-paper px-3 py-3 text-left shadow-sm"
+                            style={{ top: dueTimeTop(item.due) }}
                           >
-                            <span
-                              className="w-[3px] flex-shrink-0 rounded-sm"
-                              style={{ background: colors[item.accent] }}
-                            />
-                            <span className="flex min-w-0 flex-col">
-                              <span className="truncate text-[12px] font-semibold leading-4 text-ink">
-                                {item.title}
-                              </span>
-                              <span className="truncate text-[11px] leading-[14px] text-slate">{item.course}</span>
+                            <span className="text-[11px] font-semibold leading-[14px]" style={{ color: colors[item.accent] }}>
+                              Due {item.due}
                             </span>
+                            <span className="truncate text-[12px] font-semibold leading-4 text-ink">
+                              {item.title}
+                            </span>
+                            <span className="truncate text-[11px] leading-[14px] text-slate">{item.course}</span>
                           </button>
-                        ))}
-                      </div>
-                    </div>
-                      );
-                    })()
-                  )
-                )}
+                        );
+                      })()
+                    ) : (
+                      (() => {
+                        return (
+                          <div
+                            key={group.due}
+                            className="absolute z-30 flex w-full flex-col overflow-hidden rounded-md border border-rule bg-page shadow-md"
+                            style={dueBlockStyle(group.due)}
+                          >
+                            <div className="truncate border-b border-rule/70 bg-paper px-2.5 py-1 text-[10px] font-semibold leading-4 text-slate">
+                              Due {group.due} · {group.items.length} items
+                            </div>
+                            <div className="flex flex-col divide-y divide-rule/60">
+                              {group.items.map((item) => (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left"
+                                >
+                                  <span
+                                    className="h-4 w-[3px] flex-shrink-0 rounded-sm"
+                                    style={{ background: colors[item.accent] }}
+                                  />
+                                  <span className="min-w-0 truncate text-[11px] font-semibold leading-5 text-ink">
+                                    <span className="font-medium text-slate">{item.course.split(" ")[0]}</span>{" "}
+                                    <span>
+                                      {item.title}
+                                    </span>
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()
+                    )
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
       </div>
