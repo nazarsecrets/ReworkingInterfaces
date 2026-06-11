@@ -232,7 +232,18 @@ const monthDays = [
 
 const courseInitial = (course: string) => course.charAt(0);
 
-const timelineHours = [9, 12, 15, 18, 21];
+const timelineHours = Array.from({ length: 16 }, (_, index) => index + 8);
+const weekHeaderHeight = 58;
+const weekHourHeight = 58;
+const weekDayColumnWidth = 175;
+const weekTimeRailWidth = 88;
+const weekGridHeight = weekHeaderHeight + timelineHours.length * weekHourHeight;
+
+const formatTimelineHour = (hour24: number) => {
+  const period = hour24 >= 12 ? "PM" : "AM";
+  const hour = hour24 % 12 || 12;
+  return `${hour} ${period}`;
+};
 
 const calendarTimePercent = (hour24: number, minute: number) => {
   const minutes = hour24 * 60 + minute;
@@ -244,9 +255,7 @@ const calendarTimePercent = (hour24: number, minute: number) => {
 };
 
 const timelineGridTop = (percent: number) => {
-  const eventAreaTop = 96;
-  const eventAreaBottom = 16;
-  return `calc(${eventAreaTop}px + (100% - ${eventAreaTop + eventAreaBottom}px) * ${percent / 100})`;
+  return `${weekHeaderHeight + (timelineHours.length * weekHourHeight * percent) / 100}px`;
 };
 
 const dueTimeTop = (due: string) => {
@@ -261,34 +270,20 @@ const dueTimeTop = (due: string) => {
   return `${Math.min(92, calendarTimePercent(hour24, minute))}%`;
 };
 
-const dueAnchor = (due: string): "above" | "below" | "center" => {
+const dueChipStyle = (due: string, stackIndex: number, stackCount: number): CSSProperties => {
   const match = due.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
-  if (!match) return "center";
-  const hour = Number(match[1]);
-  const period = match[3].toUpperCase();
-  const hour24 = (hour % 12) + (period === "PM" ? 12 : 0);
-  if (hour24 >= 18) return "above";
-  if (hour24 <= 9) return "below";
-  return "center";
-};
-
-const dueBlockStyle = (due: string): CSSProperties => {
-  const match = due.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
-  if (!match) return { top: dueTimeTop(due), transform: "translateY(-50%)" };
-
-  const hour = Number(match[1]);
-  const period = match[3].toUpperCase();
+  const hour = match ? Number(match[1]) : 12;
+  const period = match?.[3].toUpperCase();
   const hour24 = (hour % 12) + (period === "PM" ? 12 : 0);
 
-  if (hour24 >= 22) return { bottom: 0 };
+  if (hour24 >= 22) {
+    return { bottom: (stackCount - stackIndex - 1) * 30 };
+  }
 
-  const anchor = dueAnchor(due);
-  const transform =
-    anchor === "below"
-      ? "translateY(0)"
-      : "translateY(-50%)";
-
-  return { top: dueTimeTop(due), transform };
+  return {
+    top: dueTimeTop(due),
+    transform: `translateY(calc(-50% + ${stackIndex * 30}px))`,
+  };
 };
 
 const formatCurrentTime = (date: Date) =>
@@ -419,9 +414,9 @@ const CalendarWorkspace = ({
   const currentTime = useCurrentTimeMarker();
   const isMonthly = mode === "blobs";
   const [range, setRange] = useState(isMonthly ? "this-month" : "this-week");
-  const sectionHeight = isMonthly ? 660 : 720;
-  const gridHeight = isMonthly ? 450 : 520;
-  const gridMinWidth = isMonthly ? 700 : 980;
+  const sectionHeight = isMonthly ? 660 : 1160;
+  const gridHeight = isMonthly ? 450 : weekGridHeight;
+  const gridMinWidth = isMonthly ? 700 : weekTimeRailWidth + calendarDays.length * weekDayColumnWidth;
   const jumpOptions = isMonthly
     ? [
         { value: "this-month", label: "This month" },
@@ -517,8 +512,8 @@ const CalendarWorkspace = ({
               style={{ top: timelineGridTop(calendarTimePercent(hour, 0)) }}
               aria-hidden="true"
             >
-              <span className="w-14 bg-page px-2 text-[10px] font-medium leading-3 text-slate">
-                {hour > 12 ? hour - 12 : hour}:00
+              <span className="bg-page px-3 text-right text-[13px] font-medium leading-4 text-slate" style={{ width: weekTimeRailWidth }}>
+                {formatTimelineHour(hour)}
               </span>
               <span className="h-px flex-1 bg-rule" />
             </div>
@@ -535,11 +530,11 @@ const CalendarWorkspace = ({
           </div>
           <div
             className="grid gap-px"
-            style={{ height: 96, gridTemplateColumns: `56px repeat(${calendarDays.length}, minmax(0, 1fr))` }}
+            style={{ height: weekHeaderHeight, gridTemplateColumns: `${weekTimeRailWidth}px repeat(${calendarDays.length}, ${weekDayColumnWidth}px)` }}
           >
-            <div className="bg-page" aria-hidden="true" />
+            <div className="flex items-center bg-page px-3 text-[13px] font-medium text-slate">GMT-04</div>
             {calendarDays.map((day) => (
-              <div key={day.date} className="relative flex h-24 flex-col gap-3 bg-page p-4">
+              <div key={day.date} className="relative flex flex-col justify-center gap-1 bg-page px-4 py-3" style={{ height: weekHeaderHeight }}>
                 <div className={day.active ? "text-crimson" : "text-slate"}>
                   <div className="text-[11px] font-semibold uppercase tracking-[0.08em]">
                     {day.label}
@@ -550,80 +545,39 @@ const CalendarWorkspace = ({
             ))}
           </div>
           <div
-            className="absolute bottom-0 left-0 right-0 top-24 grid gap-px"
-            style={{ gridTemplateColumns: `56px repeat(${calendarDays.length}, minmax(0, 1fr))` }}
+            className="absolute bottom-0 left-0 right-0 grid gap-px"
+            style={{ top: weekHeaderHeight, gridTemplateColumns: `${weekTimeRailWidth}px repeat(${calendarDays.length}, ${weekDayColumnWidth}px)` }}
           >
             <div className="bg-page" aria-hidden="true" />
-            {calendarDays.map((day) => (
-              <div key={day.date} className="relative bg-page p-4">
-                <div className="absolute inset-x-4 bottom-4 top-0">
-                  {Object.values(
-                    dueItems
-                      .filter((item) => item.date === day.date)
-                      .reduce<Record<string, { due: string; items: typeof dueItems }>>((acc, item) => {
-                        (acc[item.due] ??= { due: item.due, items: [] }).items.push(item);
-                        return acc;
-                      }, {})
-                  ).map((group) =>
-                    group.items.length === 1 ? (
-                      (() => {
-                        const item = group.items[0];
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            className="absolute flex w-full -translate-y-1/2 flex-col rounded-md border border-rule bg-paper px-3 py-3 text-left shadow-sm"
-                            style={{ top: dueTimeTop(item.due) }}
-                          >
-                            <span className="text-[11px] font-semibold leading-[14px]" style={{ color: colors[item.accent] }}>
-                              Due {item.due}
-                            </span>
-                            <span className="truncate text-[12px] font-semibold leading-4 text-ink">
-                              {item.title}
-                            </span>
-                            <span className="truncate text-[11px] leading-[14px] text-slate">{item.course}</span>
-                          </button>
-                        );
-                      })()
-                    ) : (
-                      (() => {
-                        return (
-                          <div
-                            key={group.due}
-                            className="absolute z-30 flex w-full flex-col overflow-hidden rounded-md border border-rule bg-page shadow-md"
-                            style={dueBlockStyle(group.due)}
-                          >
-                            <div className="truncate border-b border-rule/70 bg-paper px-2.5 py-1 text-[10px] font-semibold leading-4 text-slate">
-                              Due {group.due} · {group.items.length} items
-                            </div>
-                            <div className="flex flex-col divide-y divide-rule/60">
-                              {group.items.map((item) => (
-                                <button
-                                  key={item.id}
-                                  type="button"
-                                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left"
-                                >
-                                  <span
-                                    className="h-4 w-[3px] flex-shrink-0 rounded-sm"
-                                    style={{ background: colors[item.accent] }}
-                                  />
-                                  <span className="min-w-0 truncate text-[11px] font-semibold leading-5 text-ink">
-                                    <span className="font-medium text-slate">{item.course.split(" ")[0]}</span>{" "}
-                                    <span>
-                                      {item.title}
-                                    </span>
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })()
-                    )
-                  )}
+            {calendarDays.map((day) => {
+              const items = dueItems.filter((item) => item.date === day.date);
+
+              return (
+                <div key={day.date} className="relative bg-page">
+                  {items.map((item, index) => {
+                    const stackIndex = items.slice(0, index).filter((entry) => entry.due === item.due).length;
+                    const stackCount = items.filter((entry) => entry.due === item.due).length;
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        aria-label={`${item.title} for ${item.course} due ${item.due}`}
+                        className="absolute flex h-7 w-full items-center gap-2 rounded-sm border border-rule bg-paper px-2 text-left shadow-sm"
+                        style={dueChipStyle(item.due, stackIndex, stackCount)}
+                      >
+                        <span className="h-4 w-[3px] flex-shrink-0 rounded-sm" style={{ background: colors[item.accent] }} />
+                        <span className="min-w-0 truncate text-[11px] font-semibold leading-4 text-ink">
+                          <span style={{ color: colors[item.accent] }}>{item.due}</span>
+                          <span className="text-slate"> · </span>
+                          {item.title}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
